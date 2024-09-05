@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(SolutionDir)/.target</ArtifactsPath>
+  </PropertyGroup>
+</Project>
