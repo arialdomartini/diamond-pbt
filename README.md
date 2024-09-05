@@ -1,8 +1,7 @@
 Print Diamond Kata
 ==================
 
-Implementation of the [Print Diamond]
-Kata(https://blog.cyber-dojo.org/2014/10/breaking-down-problem.html)
+Implementation of the [Print Diamond Kata](https://blog.cyber-dojo.org/2014/10/breaking-down-problem.html)
 with [Property-Based Testing](https://arialdomartini.github.io/property-testing).
 
 Ideally, the implementation should be done:

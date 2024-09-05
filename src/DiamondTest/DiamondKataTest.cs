@@ -3,128 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using FsCheck;
 using FsCheck.Xunit;
-using static DiamondTest.DiamondExtensions;
+using static DiamondTest.DiamondPrint;
 
 namespace DiamondTest;
 
 delegate bool MyProp(IList<string> rows, char upTo);
 
-static class TestExtensions
+static class DiamondPrint
 {
-    internal static string Joined(this IEnumerable<string> rows) =>
-        string.Join("", rows);
-
-    internal static string Stringified(this IEnumerable<char> cs) =>
-        string.Join("", cs);
-
-    internal static IEnumerable<char> DifferentLetters(this IList<string> rows) =>
-        rows.IgnoringSpaces().SelectMany(row => row.Distinct()).Distinct();
-
-    internal static IEnumerable<string> FirstHalf(this IList<string> list) =>
-        list.Take(list.Count / 2);
-
-    internal static IEnumerable<string> SecondHalf(this IList<string> list) =>
-        list.Skip(list.Count / 2 + 1);
-
-    internal static string Center(this IList<string> list) =>
-        list.Skip(list.Count / 2).First();
-
-    internal static IEnumerable<string> Twice(this IEnumerable<string> list) =>
-        list.Select(a => $"{a}{a}");
-
-    internal static int LeadingSpaces(this string e) =>
-        e.TakeWhile(c => c == space).Count();
-
-    internal static int TrailingSpaces(this string e) =>
-        e.Reverse().TakeWhile(c => c == space).Count();
-
-    internal static int InnerSpaces(this string e)
-    {
-        var withoutLeadingSpaces = e
-            .SkipWhile(c => c == space)
-            .Stringified();
-        var withoutTrailingSpaces =
-            withoutLeadingSpaces
-                .Reverse()
-                .SkipWhile(c => c == space)
-                .Stringified();
-        var withoutNonSpaces = withoutTrailingSpaces
-            .Where(c => c == space)
-            .Stringified();
-        
-        return withoutNonSpaces.Length;
-    }
-
-    private static string WithoutSpaces(this string s) =>
-        string.Join("", s.Where(c => c != space));
-
-    internal static IList<string> IgnoringSpaces(this IEnumerable<string> s) =>
-        s.Select(WithoutSpaces).ToList();
-
-    internal static bool IsOdd(this int i) => i % 2 == 1;
-}
-
-static class DiamondExtensions
-{
-    internal const char space = '*';
-
-    internal static IEnumerable<string> Inside(this IEnumerable<string> list) =>
-        list.Skip(1).SkipLast();
-
-    private static IEnumerable<string> Singleton(this string e) =>
-        [e];
-
-    private static string Spaces(this int times) =>
-        new(space, times);
-
-    private static IList<string> Union(this IEnumerable<string> xs, string s) =>
-        xs.Union(s.Singleton()).ToList();
-
-    private static IList<string> Union(this string s, IEnumerable<string> xs) =>
-        s.Singleton().ToList().Union(xs).ToList();
-
-    private static (string First, IList<string> Inside, string Last) Split(IList<string> letters) =>
-    (
-        First: letters.First(),
-        Inside: letters.Inside().ToList(),
-        Last: letters.Last());
-
-    private static List<string> LettersUpTo(char upTo) =>
-        Enumerable.Range('a', upTo - 'a' + 1).Select(c => ((char)c).ToString()).ToList();
+    internal const char Space = ' ';
 
     internal static IList<string> Diamond(char upTo)
     {
-        var letters = LettersUpTo(upTo);
-
-        var (first, inside, last) = Split(letters);
-        var length = letters.Length();
-
-        var firstWithSpaces = $"{(length).Spaces()}{first}{(length).Spaces()}";
-
-        var withSpaces =
-            inside
-                .Select((s, i) =>
-                {
-                    var index = i;
-                    var innerSpaces = index * 2 + 1;
-                    var spaces = ((length * 2 - innerSpaces) / 2);
-                    return $"{spaces.Spaces()}{s}{innerSpaces.Spaces()}{s}{spaces.Spaces()}";
-                });
-
-
-        var firstHalf =
-            firstWithSpaces
-                .Union(withSpaces);
-
-        var innerSpacesLast = length * 2 - 1;
-        var lastWithSpaces = $"{last}{innerSpacesLast.Spaces()}{last}";
-
-        var secondHalf = firstHalf.Reverse().ToList();
-
-        return firstHalf
-            .Append(lastWithSpaces)
-            .Append(secondHalf)
-            .ToList();
+        return [];
     }
 }
 
