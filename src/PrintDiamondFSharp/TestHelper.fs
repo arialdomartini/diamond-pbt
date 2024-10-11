@@ -39,8 +39,8 @@ let withoutSpaces (s: Row) =
     s |> Seq.filter (fun c -> c <> space && c <> newLine) |> Seq.toArray
 
 let isPalindrome row =
-    if Array.length row % 2 = 0 then false
-    else Array.rev row = row
+    if Seq.length row % 2 = 0 then false
+    else Seq.rev row |> Seq.toArray = (row |> Seq.toArray)
 
 let innerSpaces (input: Row) =
     let m = Regex.Match(input, @"\S(\s+)\S")
@@ -59,12 +59,12 @@ let chars =
 let upToChars = Arb.fromGen chars
 
 
-let forAllDiamonds (property: DiamondProperty) =
+let everyDiamond (property: DiamondProperty) =
     Prop.forAll upToChars (fun upTo ->
         let diamond = print upTo
         property upTo diamond)
 
-let forAllRows (rowsProperty: RowsProperty) =
+let everySetOfRows (rowsProperty: RowsProperty) =
     Prop.forAll upToChars (fun upTo ->
         let diamond = print upTo
         let rows = diamond.Split(newLine)
@@ -89,3 +89,14 @@ let forAllRowsInQuadrant (rowsProperty: RowsProperty) =
             |> Array.take ((Array.length rows / 2) + 1)
             |> Array.map (fun l -> l.[..(String.length l / 2)])
         rowsProperty quadrant)
+
+
+
+type Seq() =
+    static member skipFirst (rows: seq<'T>) =
+        rows
+        |> Seq.skip 1
+        
+    static member skipLast (rows: seq<'T>) =
+        rows
+        |> Seq.take (Seq.length rows - 1)

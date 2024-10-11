@@ -30,9 +30,9 @@ dotnet test
 3. With size `2 * upToLetter - 1`, where `upToLetter` the upToLetter letter number
 (`a` is 0).
 4. Horizontally specular, with the central element as a pivot (i.e.,
-   it does not repeat).
-5. Vertically specular, with the cental row as a pivot (i.e., it does
-   not repeat).
+   it is not repeated).
+5. Vertically specular, with the cental row as a pivot (i.e., it it is
+   not repeated).
 6. Size is odd (or: each line length is odd).
 7. Each line but the first and the last contain a letter repeated twice.
 

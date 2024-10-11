@@ -24,7 +24,7 @@ public class PrintDiamondKataTest
 
     private static Arbitrary<char> UpToChars => Chars.ToArbitrary();
 
-    private static Property ForAllDiamonds(DiamondProperty property) =>
+    private static Property EveryDiamond(DiamondProperty property) =>
         Prop.ForAll(UpToChars, upTo =>
         {
             var diamond = Print(upTo);
@@ -32,7 +32,7 @@ public class PrintDiamondKataTest
             return property(upTo, diamond);
         });
 
-    private static Property ForAllRows(RowsProperty rowsProperty) =>
+    private static Property EverySetOfRows(RowsProperty rowsProperty) =>
         Prop.ForAll(UpToChars, upTo =>
         {
             var diamond = Print(upTo);
@@ -53,7 +53,7 @@ public class PrintDiamondKataTest
         return quadrant;
     }
 
-    private static Property ForAllTopLeftQuadrants(QuadrantProperty property) =>
+    private static Property EveryTopLeftQuadrant(QuadrantProperty property) =>
         Prop.ForAll(UpToChars, upTo =>
         {
             var diamond = Print(upTo);
@@ -63,7 +63,7 @@ public class PrintDiamondKataTest
             return property(upTo, string.Join(Newline, quadrant));
         });
 
-    private static Property ForAllRowsInQuadrant(RowsProperty rowsProperty) =>
+    private static Property InEveryQuadrantTheSetsOfRows(RowsProperty rowsProperty) =>
         Prop.ForAll(UpToChars, upTo =>
         {
             var diamond = Print(upTo);
@@ -76,13 +76,13 @@ public class PrintDiamondKataTest
     // 1. Produces a square.
     [Property]
     Property is_a_square() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.All(line => line.Length == rows.Length));
 
     // 2. Containing more spaces than letters.
     [Property]
     Property more_spaces_than_letters() =>
-        ForAllDiamonds((_, diamond) =>
+        EveryDiamond((_, diamond) =>
         {
             var spaces = diamond.Count(c => c == Space);
             var letters = LettersContainedIn(diamond);
@@ -92,7 +92,7 @@ public class PrintDiamondKataTest
     // 3. Contains all the letters from `a` up to the specified `upToLetter` letter.
     [Property]
     Property contains_all_the_letters_up_to_upTo() =>
-        ForAllDiamonds((upTo, diamond) =>
+        EveryDiamond((upTo, diamond) =>
         {
             var distinctLetters = LettersContainedIn(diamond);
 
@@ -109,10 +109,10 @@ public class PrintDiamondKataTest
                 distinctLetters.SequenceEqual(expectedLetters);
         });
 
-    // 3. With size `2 * number of letters - 1
+    // 4. With size `2 * number of letters - 1
     [Property]
     Property has_size_2_times_minus_1_the_number_of_letters() =>
-        ForAllDiamonds((_, diamond) =>
+        EveryDiamond((_, diamond) =>
         {
             var numberOfDistinctLetters = LettersContainedIn(diamond).Distinct().Count();
 
@@ -122,28 +122,28 @@ public class PrintDiamondKataTest
         });
 
 
-    // 4. Horizontally specular, with the central element as a pivot (i.e., it does not repeat).
+    // 5. Horizontally specular, with the central element as a pivot (i.e., it is not repeated).
     [Property]
     Property semi_symmetric_horizontally() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.All(row => row.ToArray().IsPalindrome()));
 
-    // 5. Vertically specular, with the central row as a pivot (i.e., it does not repeat).
+    // 6. Vertically specular, with the central row as a pivot (i.e., it is not repeated).
     [Property]
     Property semi_symmetric_vertically() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.IsPalindrome());
 
-    // 6. Size is odd (or: each line length is odd).
+    // 7. Size is odd (or: each line length is odd).
     [Property]
     Property size_is_odd() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.Length.IsOdd() && rows.All(line => line.Length.IsOdd()));
 
-    // 7. Each line but the first and the last contain a letter repeated twice.
+    // 8. Each line but the first and the last contain a letter repeated twice.
     [Property]
     Property each_line_but_the_first_and_the_last_contain_a_letter_repeated_twice() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.Skip(1).SkipLast(1).All(
                 line =>
                 {
@@ -152,45 +152,45 @@ public class PrintDiamondKataTest
                 })
         );
 
-    // 8. All rows have the same length.
+    // 9. All rows have the same length.
     [Property]
     Property all_rows_have_the_same_length() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows
                 .Select(s => s.Length)
                 .Distinct()
                 .Count() == 1);
 
-    // 9. No letter beyond `upToLetter` is present.
+    // 10. No letter beyond `upToLetter` is present.
     [Property]
     Property no_letter_beyond_upToLetter_is_present() =>
-        ForAllDiamonds((upToLetter, diamond) =>
+        EveryDiamond((upToLetter, diamond) =>
             LettersContainedIn(diamond).All(c => c <= upToLetter));
 
-    // 10. No character beyond spaces and letters is present.
+    // 11. No character beyond spaces and letters is present.
     [Property]
     Property no_character_beyond_spaces_and_letters_is_present() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.All(row => LettersContainedIn(row).All(c => char.IsLetter(c) || c == Space)));
 
-    // 11. All letters between `a` and `upToLetter` are present.
+    // 12. All letters between `a` and `upToLetter` are present.
     [Property]
     Property all_letters_between_a_and_upToLetter_are_present() =>
-        ForAllDiamonds((upToLetter, diamond) =>
+        EveryDiamond((upToLetter, diamond) =>
             LettersContainedIn(diamond)
                 .SequenceEqual(
                     AllTheLettersUpTo(upToLetter)));
 
-    // 12. No row is empty.
+    // 13. No row is empty.
     [Property]
     Property no_row_is_empty() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
             rows.All(row => row.Length > 0));
 
-    // 13. First and last rows have no inner spaces.
+    // 14. First and last rows have no inner spaces.
     [Property]
     Property first_and_last_rows_have_no_inner_spaces() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
         {
             string[] firstAndLast = [rows.First(), rows.Last()];
 
@@ -198,10 +198,10 @@ public class PrintDiamondKataTest
         });
 
 
-    // 14. Central row has no leading spaces.
+    // 15. Central row has no leading spaces.
     [Property]
     Property central_row_has_no_leading_spaces() =>
-        ForAllRows(rows =>
+        EverySetOfRows(rows =>
         {
             var centralRow = rows[rows.Length / 2];
 
@@ -217,13 +217,13 @@ public class PrintDiamondKataTest
     // 16. It is a square.
     [Property]
     Property quadrant_is_a_square() =>
-        ForAllRowsInQuadrant(rows =>
+        InEveryQuadrantTheSetsOfRows(rows =>
             rows.All(line => line.Length == rows.Length));
 
     // 17. It contains all the letters, up to `upToLetter`.
     [Property]
     Property top_left_quadrant_contains_all_letters_between_a_and_upToLetter() =>
-        ForAllTopLeftQuadrants((upToLetter, quadrant) =>
+        EveryTopLeftQuadrant((upToLetter, quadrant) =>
         {
             var allTheLetters = Range('a', upToLetter - 'a' + 1).Select(c => (char)c);
 
@@ -236,7 +236,7 @@ public class PrintDiamondKataTest
     // 18. Each line contains a trailing space more than the next one.
     [Property]
     Property in_top_left_quadrant_each_line_contains_1_leading_space_more_than_the_next_one() =>
-        ForAllRowsInQuadrant(rows =>
+        InEveryQuadrantTheSetsOfRows(rows =>
         {
             var firstHalf = rows;
             var shifted = rows.Skip(1);
@@ -254,7 +254,7 @@ public class PrintDiamondKataTest
     // 19. Each line contains one leading space less than the next one
     [Property]
     Property in_top_left_quadrant_each_line_contains_1_trailing_space_less_than_the_next_one() =>
-        ForAllRowsInQuadrant(rows =>
+        InEveryQuadrantTheSetsOfRows(rows =>
         {
             var firstHalf = rows;
             var shifted = rows.Skip(1);
@@ -295,7 +295,7 @@ public class PrintDiamondKataTest
                 .ToArray());
         }
 
-        return ForAllRowsInQuadrant(rows =>
+        return InEveryQuadrantTheSetsOfRows(rows =>
         {
             var n = rows.Length;
 
@@ -311,13 +311,13 @@ public class PrintDiamondKataTest
     // 21. Each line contains exactly 1 letter.
     [Property]
     Property in_top_left_quadrant_each_line_contains_exactly_1_letter() =>
-        ForAllRowsInQuadrant(rows =>
+        InEveryQuadrantTheSetsOfRows(rows =>
             rows.All(row => LettersContainedIn(row).Length == 1));
 
     // 22. All the letters from `a` to `upToLetter` are represented.
     [Property]
     Property in_the_top_left_quadrant_all_letters_between_a_and_upToLetter_are_present() =>
-        ForAllTopLeftQuadrants((upToLetter, quadrant) =>
+        EveryTopLeftQuadrant((upToLetter, quadrant) =>
             LettersContainedIn(quadrant)
                 .SequenceEqual(
                     AllTheLettersUpTo(upToLetter)));
@@ -325,7 +325,7 @@ public class PrintDiamondKataTest
     // 23. No letter is repeated.
     [Property]
     Property in_the_top_left_quadrant_no_letter_is_repeated() =>
-        ForAllTopLeftQuadrants((_, quadrant) =>
+        EveryTopLeftQuadrant((_, quadrant) =>
         {
             var letters = LettersContainedIn(quadrant);
 
