@@ -12,9 +12,9 @@ public class PrintDiamondKataTest
 {
     delegate bool RowsProperty(string[] strings);
 
-    delegate bool DiamondProperty(char target, string diamond);
+    delegate bool DiamondProperty(char upTo, string diamond);
 
-    delegate bool QuadrantProperty(char target, string diamond);
+    delegate bool QuadrantProperty(char upTo, string diamond);
 
     private static Gen<char> Chars =>
         from c in Arb.Generate<char>()
@@ -22,51 +22,53 @@ public class PrintDiamondKataTest
         where c <= 'z'
         select c;
 
-    private static Arbitrary<char> TargetChars => Chars.ToArbitrary();
+    private static Arbitrary<char> UpToChars => Chars.ToArbitrary();
 
-    private static Property ForEachDiamond(DiamondProperty property) =>
-        Prop.ForAll(TargetChars, target =>
+    private static Property ForAllDiamonds(DiamondProperty property) =>
+        Prop.ForAll(UpToChars, upTo =>
         {
-            var diamond = Print(target);
+            var diamond = Print(upTo);
 
-            return property(target, diamond);
+            return property(upTo, diamond);
         });
 
     private static Property ForAllRows(RowsProperty rowsProperty) =>
-        Prop.ForAll(TargetChars, target =>
+        Prop.ForAll(UpToChars, upTo =>
         {
-            var diamond = Print(target);
+            var diamond = Print(upTo);
 
             var rows = diamond.Rows();
 
             return rowsProperty(rows);
         });
 
+    private static string[] Quadrant(string diamond)
+    {
+        var rows = diamond.Rows();
+        var quadrant =
+            rows
+                .Take(rows.Length / 2 + 1)
+                .Select(l => l[..(l.Length / 2 + 1)]).ToArray();
+
+        return quadrant;
+    }
+
     private static Property ForAllTopLeftQuadrants(QuadrantProperty property) =>
-        Prop.ForAll(TargetChars, target =>
+        Prop.ForAll(UpToChars, upTo =>
         {
-            var diamond = Print(target);
+            var diamond = Print(upTo);
 
-            var rows = diamond.Rows();
-            var quadrant =
-                rows
-                    .Take(rows.Length / 2 + 1)
-                    .Select(l => l[..(l.Length / 2 + 1)]).ToArray();
+            var quadrant = Quadrant(diamond);
 
-            return property(target, string.Join(Newline, quadrant));
+            return property(upTo, string.Join(Newline, quadrant));
         });
 
-
     private static Property ForAllRowsInQuadrant(RowsProperty rowsProperty) =>
-        Prop.ForAll(TargetChars, target =>
+        Prop.ForAll(UpToChars, upTo =>
         {
-            var diamond = Print(target);
+            var diamond = Print(upTo);
 
-            var rows = diamond.Rows();
-            var quadrant =
-                rows
-                    .Take(rows.Length / 2 + 1)
-                    .Select(l => l[..(l.Length / 2 + 1)]).ToArray();
+            var quadrant = Quadrant(diamond);
 
             return rowsProperty(quadrant);
         });
@@ -80,7 +82,7 @@ public class PrintDiamondKataTest
     // 2. Containing more spaces than letters.
     [Property]
     Property more_spaces_than_letters() =>
-        ForEachDiamond((_, diamond) =>
+        ForAllDiamonds((_, diamond) =>
         {
             var spaces = diamond.Count(c => c == Space);
             var letters = LettersContainedIn(diamond);
@@ -89,8 +91,8 @@ public class PrintDiamondKataTest
 
     // 3. Contains all the letters from `a` up to the specified `upToLetter` letter.
     [Property]
-    Property contains_all_the_letters_up_to_target() =>
-        ForEachDiamond((target, diamond) =>
+    Property contains_all_the_letters_up_to_upTo() =>
+        ForAllDiamonds((upTo, diamond) =>
         {
             var distinctLetters = LettersContainedIn(diamond);
 
@@ -101,14 +103,24 @@ public class PrintDiamondKataTest
                     yield return c;
             }
 
-            var expectedLetters = AllLetters('a', target).Order().ToArray();
+            var expectedLetters = AllLetters('a', upTo).ToArray();
 
             return
                 distinctLetters.SequenceEqual(expectedLetters);
         });
 
-    // 3. With size `2 * upToLetter - 1`, where `upToLetter` the upToLetter letter number
-    // (`a` is 0).
+    // 3. With size `2 * number of letters - 1
+    [Property]
+    Property has_size_2_times_minus_1_the_number_of_letters() =>
+        ForAllDiamonds((_, diamond) =>
+        {
+            var numberOfDistinctLetters = LettersContainedIn(diamond).Distinct().Count();
+
+            return
+                diamond.Rows()
+                    .All(row => row.Length == numberOfDistinctLetters * 2 - 1);
+        });
+
 
     // 4. Horizontally specular, with the central element as a pivot (i.e., it does not repeat).
     [Property]
@@ -152,7 +164,7 @@ public class PrintDiamondKataTest
     // 9. No letter beyond `upToLetter` is present.
     [Property]
     Property no_letter_beyond_upToLetter_is_present() =>
-        ForEachDiamond((upToLetter, diamond) =>
+        ForAllDiamonds((upToLetter, diamond) =>
             LettersContainedIn(diamond).All(c => c <= upToLetter));
 
     // 10. No character beyond spaces and letters is present.
@@ -164,7 +176,7 @@ public class PrintDiamondKataTest
     // 11. All letters between `a` and `upToLetter` are present.
     [Property]
     Property all_letters_between_a_and_upToLetter_are_present() =>
-        ForEachDiamond((upToLetter, diamond) =>
+        ForAllDiamonds((upToLetter, diamond) =>
             LettersContainedIn(diamond)
                 .SequenceEqual(
                     AllTheLettersUpTo(upToLetter)));

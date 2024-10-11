@@ -8,9 +8,9 @@ static class PrintDiamond
     internal const char Space = '-';
     internal const char Newline = '\n';
 
-    internal static string Print(char target)
+    internal static string Print(char upToChar)
     {
-        var n = target - 'a' + 1;
+        var n = upToChar - 'a' + 1;
 
         return
             Enumerable.Range(0, n)
