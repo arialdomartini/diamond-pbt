@@ -4,38 +4,17 @@ using FsCheck;
 using FsCheck.Xunit;
 using static System.Linq.Enumerable;
 using static PrintDiamond.PrintDiamond;
+using static PrintDiamond.TestHelper;
 
 namespace PrintDiamond;
 
-internal static class TestHelper
-{
-    internal static string[] Lines(this string s) =>
-        s.Split(Newline).ToArray();
-
-    internal static char[] ContainedLetters(this string diamond) =>
-        diamond
-            .Where(c => c != Space)
-            .Where(c => c != Newline)
-            .Distinct()
-            .Order()
-            .ToArray();
-
-    internal static string Reversed(this string line) =>
-        new(line.Reverse().ToArray());
-
-
-    internal static int LeadingSpaces(this string e) =>
-        e.TakeWhile(c => c == Space).Count();
-
-    internal static int TrailingSpaces(this string e) =>
-        e.Reverse().TakeWhile(c => c == Space).Count();
-}
-
 public class PrintDiamondKataTest
 {
-    delegate bool LinesProperty(string[] strings);
+    delegate bool RowsProperty(string[] strings);
 
     delegate bool DiamondProperty(char target, string diamond);
+
+    delegate bool QuadrantProperty(char target, string diamond);
 
     private static Gen<char> Chars =>
         from c in Arb.Generate<char>()
@@ -53,49 +32,67 @@ public class PrintDiamondKataTest
             return property(target, diamond);
         });
 
-    private static Property ForAllLines(LinesProperty linesProperty) =>
+    private static Property ForAllRows(RowsProperty rowsProperty) =>
         Prop.ForAll(TargetChars, target =>
         {
             var diamond = Print(target);
 
-            var lines = diamond.Lines();
+            var rows = diamond.Rows();
 
-            return linesProperty(lines);
+            return rowsProperty(rows);
         });
 
-    private static Property ForAllLinesInQuadrant(LinesProperty linesProperty) =>
+    private static Property ForAllTopLeftQuadrants(QuadrantProperty property) =>
         Prop.ForAll(TargetChars, target =>
         {
             var diamond = Print(target);
 
-            var lines = diamond.Lines();
+            var rows = diamond.Rows();
             var quadrant =
-                lines
-                    .Take(lines.Length / 2 + 1)
+                rows
+                    .Take(rows.Length / 2 + 1)
                     .Select(l => l[..(l.Length / 2 + 1)]).ToArray();
 
-            return linesProperty(quadrant);
+            return property(target, string.Join(Newline, quadrant));
         });
 
+
+    private static Property ForAllRowsInQuadrant(RowsProperty rowsProperty) =>
+        Prop.ForAll(TargetChars, target =>
+        {
+            var diamond = Print(target);
+
+            var rows = diamond.Rows();
+            var quadrant =
+                rows
+                    .Take(rows.Length / 2 + 1)
+                    .Select(l => l[..(l.Length / 2 + 1)]).ToArray();
+
+            return rowsProperty(quadrant);
+        });
+
+    // 1. Produces a square.
     [Property]
     Property is_a_square() =>
-        ForAllLines(lines =>
-            lines.All(line => line.Length == lines.Length));
+        ForAllRows(rows =>
+            rows.All(line => line.Length == rows.Length));
 
+    // 2. Containing more spaces than letters.
     [Property]
     Property more_spaces_than_letters() =>
         ForEachDiamond((_, diamond) =>
         {
             var spaces = diamond.Count(c => c == Space);
-            var letters = diamond.ContainedLetters();
+            var letters = LettersContainedIn(diamond);
             return spaces >= letters.Length;
         });
 
+    // 3. Contains all the letters from `a` up to the specified `upToLetter` letter.
     [Property]
     Property contains_all_the_letters_up_to_target() =>
         ForEachDiamond((target, diamond) =>
         {
-            var distinctLetters = diamond.ContainedLetters();
+            var distinctLetters = LettersContainedIn(diamond);
 
 
             IEnumerable<char> AllLetters(char from, char upTo)
@@ -110,25 +107,127 @@ public class PrintDiamondKataTest
                 distinctLetters.SequenceEqual(expectedLetters);
         });
 
+    // 3. With size `2 * upToLetter - 1`, where `upToLetter` the upToLetter letter number
+    // (`a` is 0).
+
+    // 4. Horizontally specular, with the central element as a pivot (i.e., it does not repeat).
     [Property]
     Property semi_symmetric_horizontally() =>
-        ForAllLines(lines =>
-            lines.All(IsPalyndrome));
+        ForAllRows(rows =>
+            rows.All(row => row.ToArray().IsPalindrome()));
 
-    private bool IsPalyndrome(string line) =>
-        line == line.Reversed();
-
+    // 5. Vertically specular, with the central row as a pivot (i.e., it does not repeat).
     [Property]
     Property semi_symmetric_vertically() =>
-        ForAllLines(lines =>
-            lines.SequenceEqual(lines.Reverse()));
+        ForAllRows(rows =>
+            rows.IsPalindrome());
 
+    // 6. Size is odd (or: each line length is odd).
+    [Property]
+    Property size_is_odd() =>
+        ForAllRows(rows =>
+            rows.Length.IsOdd() && rows.All(line => line.Length.IsOdd()));
+
+    // 7. Each line but the first and the last contain a letter repeated twice.
+    [Property]
+    Property each_line_but_the_first_and_the_last_contain_a_letter_repeated_twice() =>
+        ForAllRows(rows =>
+            rows.Skip(1).SkipLast(1).All(
+                line =>
+                {
+                    var withoutSpaces = line.WithoutSpaces();
+                    return withoutSpaces[0] == withoutSpaces[1];
+                })
+        );
+
+    // 8. All rows have the same length.
+    [Property]
+    Property all_rows_have_the_same_length() =>
+        ForAllRows(rows =>
+            rows
+                .Select(s => s.Length)
+                .Distinct()
+                .Count() == 1);
+
+    // 9. No letter beyond `upToLetter` is present.
+    [Property]
+    Property no_letter_beyond_upToLetter_is_present() =>
+        ForEachDiamond((upToLetter, diamond) =>
+            LettersContainedIn(diamond).All(c => c <= upToLetter));
+
+    // 10. No character beyond spaces and letters is present.
+    [Property]
+    Property no_character_beyond_spaces_and_letters_is_present() =>
+        ForAllRows(rows =>
+            rows.All(row => LettersContainedIn(row).All(c => char.IsLetter(c) || c == Space)));
+
+    // 11. All letters between `a` and `upToLetter` are present.
+    [Property]
+    Property all_letters_between_a_and_upToLetter_are_present() =>
+        ForEachDiamond((upToLetter, diamond) =>
+            LettersContainedIn(diamond)
+                .SequenceEqual(
+                    AllTheLettersUpTo(upToLetter)));
+
+    // 12. No row is empty.
+    [Property]
+    Property no_row_is_empty() =>
+        ForAllRows(rows =>
+            rows.All(row => row.Length > 0));
+
+    // 13. First and last rows have no inner spaces.
+    [Property]
+    Property first_and_last_rows_have_no_inner_spaces() =>
+        ForAllRows(rows =>
+        {
+            string[] firstAndLast = [rows.First(), rows.Last()];
+
+            return firstAndLast.All(s => s.InnerSpaces().Length == 0);
+        });
+
+
+    // 14. Central row has no leading spaces.
+    [Property]
+    Property central_row_has_no_leading_spaces() =>
+        ForAllRows(rows =>
+        {
+            var centralRow = rows[rows.Length / 2];
+
+            return centralRow.LeadingSpaces() == 0;
+        });
+
+
+    // Because of `4` and `5`, `4` Quadrants are identified.
+
+    // ## Top-left Quadrant Properties
+    // For the top-left Quadrant: 
+    //
+    // 16. It is a square.
+    [Property]
+    Property quadrant_is_a_square() =>
+        ForAllRowsInQuadrant(rows =>
+            rows.All(line => line.Length == rows.Length));
+
+    // 17. It contains all the letters, up to `upToLetter`.
+    [Property]
+    Property top_left_quadrant_contains_all_letters_between_a_and_upToLetter() =>
+        ForAllTopLeftQuadrants((upToLetter, quadrant) =>
+        {
+            var allTheLetters = Range('a', upToLetter - 'a' + 1).Select(c => (char)c);
+
+            int[] numbers = { 2, 3, 4, 5 };
+
+            return LettersContainedIn(quadrant)
+                .SequenceEqual(allTheLetters);
+        });
+
+    // 18. Each line contains a trailing space more than the next one.
     [Property]
     Property in_top_left_quadrant_each_line_contains_1_leading_space_more_than_the_next_one() =>
-        ForAllLinesInQuadrant(lines =>
+        ForAllRowsInQuadrant(rows =>
         {
-            var firstHalf = lines;
-            var shifted = lines.Skip(1);
+            var firstHalf = rows;
+            var shifted = rows.Skip(1);
             var together = firstHalf.Zip(shifted);
 
             return together.All(el =>
@@ -140,12 +239,13 @@ public class PrintDiamondKataTest
             });
         });
 
+    // 19. Each line contains one leading space less than the next one
     [Property]
     Property in_top_left_quadrant_each_line_contains_1_trailing_space_less_than_the_next_one() =>
-        ForAllLinesInQuadrant(lines =>
+        ForAllRowsInQuadrant(rows =>
         {
-            var firstHalf = lines;
-            var shifted = lines.Skip(1);
+            var firstHalf = rows;
+            var shifted = rows.Skip(1);
             var together = firstHalf.Zip(shifted);
 
             return together.All(el =>
@@ -157,6 +257,7 @@ public class PrintDiamondKataTest
             });
         });
 
+    // 20. Letters are on the top-right to bottom-left diagonal.
     [Property]
     Property in_top_left_quadrant_letters_are_on_the_top_right_to_bottom_left_diagonal()
     {
@@ -173,25 +274,49 @@ public class PrintDiamondKataTest
             return elementsBesidesDiagonal.All(ch => ch == Space);
         }
 
-        string DiagonalOf(string[] lines)
+        string DiagonalOf(string[] rows)
         {
-            var n = lines.Length;
-            
+            var n = rows.Length;
+
             return new string(Range(0, n)
-                .Select(i => lines[i][n - 1 - i])
+                .Select(i => rows[i][n - 1 - i])
                 .ToArray());
         }
 
-        return ForAllLinesInQuadrant(lines =>
+        return ForAllRowsInQuadrant(rows =>
         {
-            var n = lines.Length;
+            var n = rows.Length;
 
-            var diagonal = DiagonalOf(lines);
+            var diagonal = DiagonalOf(rows);
 
             IEnumerable<char> enumerable = diagonal.Distinct();
             var containSpaceInDiagonal = enumerable.Contains(Space);
 
-            return !containSpaceInDiagonal && OnlySpacesBesidesTheDiagonal(lines);
+            return !containSpaceInDiagonal && OnlySpacesBesidesTheDiagonal(rows);
         });
     }
+
+    // 21. Each line contains exactly 1 letter.
+    [Property]
+    Property in_top_left_quadrant_each_line_contains_exactly_1_letter() =>
+        ForAllRowsInQuadrant(rows =>
+            rows.All(row => LettersContainedIn(row).Length == 1));
+
+    // 22. All the letters from `a` to `upToLetter` are represented.
+    [Property]
+    Property in_the_top_left_quadrant_all_letters_between_a_and_upToLetter_are_present() =>
+        ForAllTopLeftQuadrants((upToLetter, quadrant) =>
+            LettersContainedIn(quadrant)
+                .SequenceEqual(
+                    AllTheLettersUpTo(upToLetter)));
+
+    // 23. No letter is repeated.
+    [Property]
+    Property in_the_top_left_quadrant_no_letter_is_repeated() =>
+        ForAllTopLeftQuadrants((_, quadrant) =>
+        {
+            var letters = LettersContainedIn(quadrant);
+
+            return letters.All(letter => quadrant.Count(c => c == letter) == 1);
+        });
 }

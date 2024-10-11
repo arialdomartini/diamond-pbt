@@ -26,7 +26,8 @@ dotnet test
 
 1. Produces a square.
 2. Containing more spaces than letters.
-3. With size `2 * target - 1`, where `target` the target letter number
+3. Contains all the letters from `a` up to the specified `upToLetter` letter.
+3. With size `2 * upToLetter - 1`, where `upToLetter` the upToLetter letter number
 (`a` is 0).
 4. Horizontally specular, with the central element as a pivot (i.e.,
    it does not repeat).
@@ -37,12 +38,13 @@ dotnet test
 
 
 8. All rows have the same length.
-9. No letter beyond `target` is present.
+9. No letter beyond `upToLetter` is present.
 10. No character beyond spaces and letters is present.
-11. All letters between `a` and `target` are present.
+11. All letters between `a` and `upToLetter` are present.
 12. No row is empty.
 13. First and last rows have no inner spaces.
 14. Central row has no leading spaces.
+15. Central row has no trailing spaces.
 
 
 Because of `4` and `5`, `4` Quadrants are identified.
@@ -51,14 +53,14 @@ Because of `4` and `5`, `4` Quadrants are identified.
 ## Top-left Quadrant Properties
 For the top-left Quadrant: 
 
-15. It is a square.
-16. It contains all the letters, up to `target`.
-17. Each line contains a trailing space more than the next one.
-18. Each line contains one leading space less than the next one
-19. Letters are on the top-right to bottom-left diagonal.
-20. Each line contains exactly 1 letter.
-21. All the letters from `a` to `target` are represented.
-22. No letter is repeated.
+16. It is a square.
+17. It contains all the letters, up to `upToLetter`.
+18. Each line contains a trailing space more than the next one.
+19. Each line contains one leading space less than the next one
+20. Letters are on the top-right to bottom-left diagonal.
+21. Each line contains exactly 1 letter.
+22. All the letters from `a` to `upToLetter` are represented.
+23. No letter is repeated.
 
 ## Diamond
 
