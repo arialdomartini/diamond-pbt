@@ -5,7 +5,7 @@ open FsCheck.Xunit
 open PrintDiamondFSharp.TestHelper
 
 [<Property>]
-let ``1. pPoduces a square`` () =
+let ``1. Produces a square`` () =
     everySetOfRows (fun rows ->
             rows |> Array.forall (fun line -> String.length line = Array.length rows))
 
